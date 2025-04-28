@@ -1,60 +1,91 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <netinet/in.h>
+#include <arpa/inet.h>
 
-#define PORT 9090
+#define PORT 49152
 
 int main() {
     int server_fd, new_socket;
-    struct sockaddr_in address;
-    char buffer[1024] = {0};
-    int addrlen = sizeof(address);
+    char buffer[1024];
+    struct sockaddr_in servaddr, cliaddr;
+    socklen_t addr_len = sizeof(cliaddr);
 
-    // 1. Create socket
+    // 1. Create TCP socket
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == 0) {
-        perror("Socket failed");
+    if (server_fd < 0) {
+        perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    // 2. Bind
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    // 2. Fill server info
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(PORT);
 
-    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
+    // 3. Bind socket with server address
+    if (bind(server_fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         perror("Bind failed");
+        close(server_fd);
         exit(EXIT_FAILURE);
     }
 
-    // 3. Listen
+    // 4. Listen for incoming connections
     if (listen(server_fd, 3) < 0) {
         perror("Listen failed");
+        close(server_fd);
         exit(EXIT_FAILURE);
     }
-    printf("Checking\n");
-    printf("Server is listening on port %d...\n", PORT);
-  
-    // 4. Accept
-    new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
+
+    printf("TCP server is listening on port %d...\n", PORT);
+
+    // 5. Accept incoming connection from client
+    new_socket = accept(server_fd, (struct sockaddr *)&cliaddr, &addr_len);
     if (new_socket < 0) {
         perror("Accept failed");
+        close(server_fd);
         exit(EXIT_FAILURE);
     }
 
-    printf("Client connected!\n");
+    printf("Client connected.\n");
 
-    // 5. Read
-    int bytes_received = read(new_socket, buffer, sizeof(buffer));
-    if (bytes_received > 0) {
-        buffer[bytes_received] = '\0'; // Null-terminate the string
-        printf("Client Message: %s\n", buffer);
-    } else {
-        printf("No data received or client disconnected.\n");
+    // 6. Loop to receive messages continuously
+    while (1) {
+        memset(buffer, 0, sizeof(buffer));  // Clear buffer before each recv
+
+        int n = recv(new_socket, buffer, sizeof(buffer) - 1, 0);
+        if (n < 0) {
+            perror("recv failed");
+            continue;
+        }
+
+        buffer[n] = '\0'; // Null terminate
+
+        // Trim newline if present
+        if (buffer[strlen(buffer) - 1] == '\n') {
+            buffer[strlen(buffer) - 1] = '\0';
+        }
+
+        // Check for exit command
+        if (strcmp(buffer, "exit") == 0) {
+            printf("!!!!!!!Shutting down server!!!!!!!\n");
+            send(new_socket, "Server shutting down", strlen("Server shutting down"), 0);
+            break;
+        }
+
+        if (strlen(buffer) == 0) {
+            printf("No message received.\n");
+            send(new_socket, "No message received", strlen("No message received"), 0);
+        } else {
+            printf("***Client Message: %s\n", buffer);
+            send(new_socket, buffer, strlen(buffer), 0);
+        }
+
+        printf("\n...Waiting for next message...\n");
     }
-    
+
     close(new_socket);
     close(server_fd);
     return 0;
