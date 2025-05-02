@@ -10,9 +10,10 @@ int main() {
     int sockfd;
     char buffer[1024];
     struct sockaddr_in servaddr;
+    socklen_t addr_len = sizeof(servaddr);
 
     // 1. Create socket
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
@@ -24,16 +25,9 @@ int main() {
     servaddr.sin_port = htons(PORT);
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    // 3. Connect to server
-    if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
-        perror("Connection failed");
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
-
-    // 4. Loop to send messages
+    // 3. Loop to send messages
     while (1) {
-        printf("\nEnter message to send to server (blank to retry, 'exit' to quit):\n");
+        printf("Enter message to send to server (blank to retry, 'exit' to quit): ");
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             printf("Error reading input. Exiting.\n");
             break;
@@ -48,26 +42,25 @@ int main() {
 
         // Check for 'exit' command
         if (strcmp(buffer, "exit") == 0) {
-            send(sockfd, buffer, len, 0);
-            printf("\nExit command sent to server\n Server has Shut down!!!!!\n");
-            break;
-        
-        // Check for blank input
+            sendto(sockfd, buffer, len, 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
+            printf("Exit command sent to server.\n");
+        }
 
+        // Check for blank input
         if (len == 0) {
-            printf("\nYou entered a blank message. Please enter a valid message or 'exit' to quit.\n");
+            printf("You entered a Blank message. Please enter a valid message or 'exit' to quit.\n");
             continue;
         }
 
         // Send message
-        send(sockfd, buffer, len, 0);
-        printf("Message sent!\n");
+        sendto(sockfd, buffer, len, 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
 
         // Receive response from server
-        int n = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
+        int n = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0,
+                         (struct sockaddr *)&servaddr, &addr_len);
         if (n > 0) {
             buffer[n] = '\0'; // Null-terminate received message
-            printf("Server: %s\n", buffer);
+            //printf("Server: %s\n", buffer);
 
             // If server is shutting down
             if (strcmp(buffer, "Server shutting down") == 0) {

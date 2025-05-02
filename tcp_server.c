@@ -3,10 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-<<<<<<< HEAD
-=======
+
 #include <time.h>
->>>>>>> Two_way_communication
+
 
 #define PORT 49152
 
@@ -16,43 +15,40 @@ int main() {
     struct sockaddr_in servaddr, cliaddr;
     socklen_t addr_len = sizeof(cliaddr);
 
-<<<<<<< HEAD
+
+
     // 1. Create TCP socket
-=======
-    // Create TCP socket
->>>>>>> Two_way_communication
+
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-<<<<<<< HEAD
+
+
+
     // 2. Fill server info
-=======
-    // Fill server address info
->>>>>>> Two_way_communication
+
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = INADDR_ANY;
     servaddr.sin_port = htons(PORT);
 
-<<<<<<< HEAD
+
+
+
     // 3. Bind socket with server address
-=======
-    // Bind socket
->>>>>>> Two_way_communication
+
     if (bind(server_fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         perror("Bind failed");
         close(server_fd);
         exit(EXIT_FAILURE);
     }
 
-<<<<<<< HEAD
+
     // 4. Listen for incoming connections
-=======
-    // Listen for connections
->>>>>>> Two_way_communication
+
     if (listen(server_fd, 3) < 0) {
         perror("Listen failed");
         close(server_fd);
@@ -61,11 +57,9 @@ int main() {
 
     printf("TCP server is listening on port %d...\n", PORT);
 
-<<<<<<< HEAD
+
     // 5. Accept incoming connection from client
-=======
-    // Accept client connection
->>>>>>> Two_way_communication
+
     new_socket = accept(server_fd, (struct sockaddr *)&cliaddr, &addr_len);
     if (new_socket < 0) {
         perror("Accept failed");
@@ -75,7 +69,7 @@ int main() {
 
     printf("Client connected.\n");
 
-<<<<<<< HEAD
+
     // 6. Loop to receive messages continuously
     while (1) {
         memset(buffer, 0, sizeof(buffer));  // Clear buffer before each recv
@@ -109,7 +103,7 @@ int main() {
         }
 
         printf("\n...Waiting for next message...\n");
-=======
+
     // Handle client messages
     while (1) {
         memset(buffer, 0, sizeof(buffer));
@@ -148,7 +142,7 @@ int main() {
         }
 
         printf("...Waiting for next message...\n");
->>>>>>> Two_way_communication
+
     }
 
     close(new_socket);
